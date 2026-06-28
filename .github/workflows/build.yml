@@ -25,19 +25,18 @@ jobs:
 
       - name: Build APK
         run: |
-          # Создаем структуру строго по гайдлайнам Flet
           mkdir -p assets
           
-          # Проверяем, есть ли иконка, и копируем её. Если нет — flet соберет со стандартной
           if [ -f "icon.png" ]; then
             cp icon.png assets/icon.png
           fi
           
-          # Генерируем конфигурацию
+          # Задаем официальное название приложения в конфигурации flet.toml
           echo '[main]' > flet.toml
+          echo 'name = "Calculator of Risk"' >> flet.toml
           echo 'assets_dir = "assets"' >> flet.toml
           
-          # Запуск сборки
+          # Собираем чистый APK. Проблема с черным экраном решена за счет исправленного main.py
           yes | flet build apk
           
       - name: Upload APK
