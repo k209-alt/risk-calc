@@ -19,25 +19,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      - name: Install Flet and Setup Android SDK
+      - name: Install Flet
         run: |
           pip install flet
-          # Автоматически принимаем все лицензии Android SDK
-          yes | sdkmanager --licenses || true
 
-      - name: Pre-initialize Flet Build
+      - name: Build APK with Icon
         run: |
-          # Принудительно заставляем flet увидеть установленный Flutter
-          flet build apk --no-config || true
-
-      - name: Build APK
-        run: |
-          flet build apk
+          # --yes автоматически соглашается на установку Flutter SDK внутри окружения
+          # --icon берет картинку icon.png из корня репозитория и делает её иконкой приложения
+          flet build apk --yes --icon icon.png
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
