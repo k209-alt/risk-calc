@@ -25,16 +25,19 @@ jobs:
 
       - name: Build APK
         run: |
-          # Создаем файл конфигурации flet.toml, где жестко прописываем путь к иконке
+          # Создаем структуру строго по гайдлайнам Flet
+          mkdir -p assets
+          
+          # Проверяем, есть ли иконка, и копируем её. Если нет — flet соберет со стандартной
+          if [ -f "icon.png" ]; then
+            cp icon.png assets/icon.png
+          fi
+          
+          # Генерируем конфигурацию
           echo '[main]' > flet.toml
           echo 'assets_dir = "assets"' >> flet.toml
           
-          # Flet ищет иконку в папке assets, создаем её и копируем туда наш icon.png
-          mkdir -p assets
-          cp icon.png assets/icon.png
-          
-          # Запускаем сборку без ломающих CLI флагов. 
-          # Конвейер yes автоматически прожмет "y" на соглашении об установке Flutter SDK
+          # Запуск сборки
           yes | flet build apk
           
       - name: Upload APK
