@@ -23,11 +23,19 @@ jobs:
         run: |
           pip install flet
 
-      - name: Build APK with Icon
+      - name: Build APK
         run: |
-          # В новых версиях Flet обходим интерактивный запрос через конвейер yes
-          # И передаем параметры сборки корректно
-          yes | flet build apk --icon ./icon.png
+          # Создаем файл конфигурации flet.toml, где жестко прописываем путь к иконке
+          echo '[main]' > flet.toml
+          echo 'assets_dir = "assets"' >> flet.toml
+          
+          # Flet ищет иконку в папке assets, создаем её и копируем туда наш icon.png
+          mkdir -p assets
+          cp icon.png assets/icon.png
+          
+          # Запускаем сборку без ломающих CLI флагов. 
+          # Конвейер yes автоматически прожмет "y" на соглашении об установке Flutter SDK
+          yes | flet build apk
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
