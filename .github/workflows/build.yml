@@ -25,9 +25,9 @@ jobs:
 
       - name: Build APK with Icon
         run: |
-          # --yes автоматически соглашается на установку Flutter SDK внутри окружения
-          # --icon берет картинку icon.png из корня репозитория и делает её иконкой приложения
-          flet build apk --yes --icon icon.png
+          # В новых версиях Flet обходим интерактивный запрос через конвейер yes
+          # И передаем параметры сборки корректно
+          yes | flet build apk --icon ./icon.png
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
