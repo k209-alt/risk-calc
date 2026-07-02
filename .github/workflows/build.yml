@@ -31,12 +31,15 @@ jobs:
             cp icon.png assets/icon.png
           fi
           
-          # Задаем официальное название приложения в конфигурации flet.toml
+          # Генерируем правильный flet.toml с жестким разделением имен
           echo '[main]' > flet.toml
-          echo 'name = "Calculator of Risk"' >> flet.toml
+          echo 'name = "risk_calculator_app"' >> flet.toml
           echo 'assets_dir = "assets"' >> flet.toml
+          echo '' >> flet.toml
+          echo '[flutter]' >> flet.toml
+          echo 'product = "calculator of risk"' >> flet.toml
           
-          # Собираем чистый APK. Проблема с черным экраном решена за счет исправленного main.py
+          # Собираем чистый APK
           yes | flet build apk
           
       - name: Upload APK
