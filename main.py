@@ -1,26 +1,13 @@
 import flet as ft
 
 def main(page: ft.Page):
-    page.title = "Calculator of Risk"
+    page.title = "calculator of risk"
     page.theme_mode = ft.ThemeMode.DARK
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.padding = 20
 
-    # Спецификации контрактов: (Стоимость шага, Размер шага)
-    # Считаем через стандартный пункт 0.0001 для простоты ввода цен пользователем
-    FUTURES_SPECS = {
-        "futures_micro": {
-            "eur": {"tick_value": 1.00, "tick_size": 0.0001},  # M6E
-            "gbp": {"tick_value": 1.25, "tick_size": 0.0001},  # M6B
-        },
-        "futures_std": {
-            "eur": {"tick_value": 12.50, "tick_size": 0.0001}, # 6E
-            "gbp": {"tick_value": 12.50, "tick_size": 0.0001}, # 6B
-        }
-    }
-
-    # Выбор формулы рынка
+    # Выбор формулы
     dropdown_formula = ft.Dropdown(
         label="Выбор формулы",
         options=[
@@ -32,7 +19,7 @@ def main(page: ft.Page):
         width=300,
     )
     
-    # Выбор конкретного контракта
+    # Выбор конкретного фьючерсного контракта
     dropdown_pair = ft.Dropdown(
         label="Выбор контракта",
         options=[
@@ -41,30 +28,29 @@ def main(page: ft.Page):
         ],
         value="eur",
         width=300,
-        visible=False,
+        visible=False,  # Скрыт по умолчанию
     )
     
+    # Функция отслеживания смены формулы
     def formula_changed(e):
-        # Показываем выбор пары только если выбран фьючерс
-        dropdown_pair.visible = dropdown_formula.value != "forex"
+        if dropdown_formula.value == "forex":
+            dropdown_pair.visible = False
+        else:
+            dropdown_pair.visible = True
         page.update()
         
     dropdown_formula.on_change = formula_changed
     
     # Поля ввода
-    input_r = ft.TextField(label="Риск ($)", keyboard_type=ft.KeyboardType.NUMBER, width=300)
-    input_e = ft.TextField(label="Вход (Цена)", keyboard_type=ft.KeyboardType.NUMBER, width=300)
-    input_s = ft.TextField(label="Стоп (Цена)", keyboard_type=ft.KeyboardType.NUMBER, width=300)
+    input_r = ft.TextField(label="Риск (r)", keyboard_type=ft.KeyboardType.NUMBER, width=300)
+    input_e = ft.TextField(label="Вход (e)", keyboard_type=ft.KeyboardType.NUMBER, width=300)
+    input_s = ft.TextField(label="Стоп (s)", keyboard_type=ft.KeyboardType.NUMBER, width=300)
     
+    # Поле вывода результата
     result_text = ft.Text(value="Результат: X = 0.00", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_ACCENT)
 
+    # Логика расчета
     def calculate(e):
-        if not input_r.value or not input_e.value or not input_s.value:
-            result_text.value = "Заполните все поля!"
-            result_text.color = ft.Colors.RED_ACCENT
-            page.update()
-            return
-
         try:
             r = float(input_r.value.replace(",", "."))
             entry = float(input_e.value.replace(",", "."))
@@ -78,45 +64,65 @@ def main(page: ft.Page):
                 page.update()
                 return
 
-            market = dropdown_formula.value
-            pair = dropdown_pair.value
-
-            if market == "forex":
-                # Стандартная формула форекса (1 лот = 100,000 единиц)
+            # --- РАСЧЕТ ДЛЯ FOREX ---
+            if dropdown_formula.value == "forex":
                 x = r / (diff * 100000)
                 label = "лотов"
-            else:
-                # Извлекаем настройки конкретно для выбранного типа фьючерса и пары
-                spec = FUTURES_SPECS[market][pair]
-                
-                ticks = diff / spec["tick_size"]
-                x = r / (ticks * spec["tick_value"])
-                
-                label = "контр. (Micro)" if market == "futures_micro" else "контр. (Standard)"
             
+            # --- РАСЧЕТ ДЛЯ MICRO FUTURES ---
+            elif dropdown_formula.value == "futures_micro":
+                label = "контр. (Micro)"
+                if dropdown_pair.value == "eur":
+                    # M6E: шаг 0.0001, стоимость $1.25
+                    ticks = diff / 0.0001
+                    tick_value = 1.25
+                elif dropdown_pair.value == "gbp":
+                    # M6B: шаг 0.0001, стоимость $1.25
+                    ticks = diff / 0.0001
+                    tick_value = 1.25
+                x = r / (ticks * tick_value)
+                
+            # --- РАСЧЕТ ДЛЯ STANDARD FUTURES ---
+            elif dropdown_formula.value == "futures_std":
+                label = "контр. (Standard)"
+                if dropdown_pair.value == "eur":
+                    # 6E: шаг 0.00005, стоимость $6.25
+                    ticks = diff / 0.00005
+                    tick_value = 6.25
+                elif dropdown_pair.value == "gbp":
+                    # 6B: шаг 0.0001, стоимость $6.25
+                    ticks = diff / 0.0001
+                    tick_value = 6.25
+                x = r / (ticks * tick_value)
+            
+            # Округление результатов до 2 знаков
             result_text.value = f"Результат: X = {round(x, 2):.2f} {label}"
             result_text.color = ft.Colors.GREEN_ACCENT
             
-        except ValueError:
-            result_text.value = "Используйте только числа!"
+        except (ValueError, TypeError):
+            result_text.value = "Заполните все поля числами!"
             result_text.color = ft.Colors.RED_ACCENT
             
         page.update()
 
+    # Кнопка
     btn_ok = ft.ElevatedButton(
-        text="Рассчитать объем",
+        text="OK",
         on_click=calculate,
         width=300,
-        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=8))
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=8),
+        )
     )
 
+    # Элементы интерфейса
     page.add(
         ft.Column(
             controls=[
                 ft.Text("Калькулятор Риска", size=24, weight=ft.FontWeight.W_500),
                 ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
                 dropdown_formula,
-                dropdown_pair,
+                dropdown_pair,  
                 input_r,
                 input_e,
                 input_s,
