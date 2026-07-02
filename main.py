@@ -12,7 +12,8 @@ def main(page: ft.Page):
         label="Выбор формулы",
         options=[
             ft.dropdown.Option("forex", "Forex (x100000)"),
-            ft.dropdown.Option("futures", "Futures (x10000 × 0.625)"),
+            ft.dropdown.Option("futures_micro", "Futures Micro (M6E - $1/tick)"),
+            ft.dropdown.Option("futures_std", "Futures Standard (6E - $12.5/tick)"),
         ],
         value="forex",
         width=300,
@@ -43,12 +44,26 @@ def main(page: ft.Page):
                 return
 
             if dropdown_formula.value == "forex":
+                # Стандартный форекс лот
                 x = r / (diff * 100000)
-            else:
-                x = (r / (diff * 10000)) * 0.625
+                label = "лотов"
             
-            # Округление до 0.01
-            result_text.value = f"Результат: X = {round(x, 2):.2f}"
+            elif dropdown_formula.value == "futures_micro":
+                # Микро-фьючерс EUR (M6E): 1 тик = 0.0001, стоимость тика = $1.00
+                ticks = diff / 0.0001
+                x = r / (ticks * 1.00)
+                label = "контр. (Micro)"
+                
+            elif dropdown_formula.value == "futures_std":
+                # Полный фьючерс EUR (6E): 1 тик = 0.0001, стоимость тика = $12.50
+                ticks = diff / 0.0001
+                x = r / (ticks * 12.50)
+                label = "контр. (Standard)"
+            
+            # Округление результатов
+            # Для форекса до 0.01 лота, для фьючерсов контракты обычно округляют в меньшую сторону до целого,
+            # но оставим 2 знака, чтобы ты видел точную математику позиции
+            result_text.value = f"Результат: X = {round(x, 2):.2f} {label}"
             result_text.color = ft.Colors.GREEN_ACCENT
             
         except (ValueError, TypeError):
@@ -57,9 +72,9 @@ def main(page: ft.Page):
             
         page.update()
 
-    # Новая кнопка по стандартам Flet 0.85+
+    # Кнопка по стандартам Flet 0.85+
     btn_ok = ft.Button(
-        content=ft.Text("OK"),  # Текст теперь передается внутри контента
+        content=ft.Text("OK"),
         on_click=calculate,
         width=300,
         style=ft.ButtonStyle(
