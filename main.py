@@ -1,7 +1,7 @@
 import flet as ft
 
 def main(page: ft.Page):
-    page.title = "Risk Calculator"
+    page.title = "calculator of risk"
     page.theme_mode = ft.ThemeMode.DARK  # Минималистичный темный стиль
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
@@ -12,12 +12,34 @@ def main(page: ft.Page):
         label="Выбор формулы",
         options=[
             ft.dropdown.Option("forex", "Forex (x100000)"),
-            ft.dropdown.Option("futures_micro", "Futures Micro (M6E - $1/tick)"),
-            ft.dropdown.Option("futures_std", "Futures Standard (6E - $12.5/tick)"),
+            ft.dropdown.Option("futures_micro", "Futures Micro"),
+            ft.dropdown.Option("futures_std", "Futures Standard"),
         ],
         value="forex",
         width=300,
     )
+    
+    # Выбор конкретного фьючерсного контракта (изначально скрыт, так как по дефолту выбран Forex)
+    dropdown_pair = ft.Dropdown(
+        label="Выбор контракта",
+        options=[
+            ft.dropdown.Option("eur", "Euro (6E / M6E)"),
+            ft.dropdown.Option("gbp", "GBP (6B / M6B)"),
+        ],
+        value="eur",
+        width=300,
+        visible=False,  # Скрыт по умолчанию
+    )
+    
+    # Функция отслеживания смены формулы (показывает/скрывает выбор пар)
+    def formula_changed(e):
+        if dropdown_formula.value == "forex":
+            dropdown_pair.visible = False
+        else:
+            dropdown_pair.visible = True
+        page.update()
+        
+    dropdown_formula.on_change = formula_changed
     
     # Поля ввода
     input_r = ft.TextField(label="Риск (r)", keyboard_type=ft.KeyboardType.NUMBER, width=300)
@@ -44,25 +66,26 @@ def main(page: ft.Page):
                 return
 
             if dropdown_formula.value == "forex":
-                # Стандартный форекс лот
                 x = r / (diff * 100000)
                 label = "лотов"
             
-            elif dropdown_formula.value == "futures_micro":
-                # Микро-фьючерс EUR (M6E): 1 тик = 0.0001, стоимость тика = $1.00
+            else:
+                # Шаг цены (тик) для валютных фьючерсов всегда 0.0001
                 ticks = diff / 0.0001
-                x = r / (ticks * 1.00)
-                label = "контр. (Micro)"
                 
-            elif dropdown_formula.value == "futures_std":
-                # Полный фьючерс EUR (6E): 1 тик = 0.0001, стоимость тика = $12.50
-                ticks = diff / 0.0001
-                x = r / (ticks * 12.50)
-                label = "контр. (Standard)"
+                if dropdown_formula.value == "futures_micro":
+                    label = "контр. (Micro)"
+                    # Стоимость тика для Микро контрактов
+                    tick_value = 1.00 if dropdown_pair.value == "eur" else 1.25
+                    
+                elif dropdown_formula.value == "futures_std":
+                    label = "контр. (Standard)"
+                    # Стоимость тика для Стандартных контрактов
+                    tick_value = 12.50 if dropdown_pair.value == "eur" else 6.25
+                
+                x = r / (ticks * tick_value)
             
-            # Округление результатов
-            # Для форекса до 0.01 лота, для фьючерсов контракты обычно округляют в меньшую сторону до целого,
-            # но оставим 2 знака, чтобы ты видел точную математику позиции
+            # Округление результатов до 2 знаков
             result_text.value = f"Результат: X = {round(x, 2):.2f} {label}"
             result_text.color = ft.Colors.GREEN_ACCENT
             
@@ -89,6 +112,7 @@ def main(page: ft.Page):
                 ft.Text("Калькулятор Риска", size=24, weight=ft.FontWeight.W_500),
                 ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
                 dropdown_formula,
+                dropdown_pair,  # Динамическое поле выбора пары
                 input_r,
                 input_e,
                 input_s,
@@ -101,5 +125,5 @@ def main(page: ft.Page):
         )
     )
 
-# Новый метод запуска вместо ft.app()
+# Метод запуска Flet
 ft.run(main)
